@@ -74,18 +74,32 @@ jobs:
         uses: aquasecurity/trivy-action@0.24.0
         with:
           scan-type: fs
-          ignore-unfixed: true
+          scanners: vuln,secret,misconfig
+          severity: LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: 0
           format: sarif
           output: trivy-fs.sarif
+      - name: Trivy FS (table summary)
+        run: trivy fs --scanners vuln,secret,misconfig --severity LOW,MEDIUM,HIGH,CRITICAL --quiet --format table .
+
+      - name: Trivy Image (table summary)
+        if: github.event_name != 'pull_request'
+        run: trivy image --scanners vuln,secret,misconfig --severity LOW,MEDIUM,HIGH,CRITICAL --quiet --format table ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_SHA }}
+
 
       - name: Trivy image scan
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@0.24.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_SHA }}
-          ignore-unfixed: true
+          scanners: vuln,secret,misconfig
+          severity: LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: 0
           format: sarif
           output: trivy-image.sarif
+
 
       - name: Upload Trivy FS results
         uses: github/codeql-action/upload-sarif@v3
