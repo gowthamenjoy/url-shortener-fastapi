@@ -1,0 +1,52 @@
+image:
+  repository: url-shortener
+  tag: "dev"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+serviceAccount:
+  create: true
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+
+probes:
+  path: /healthz
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 2
+  failureThreshold: 3
+  successThreshold: 1
+
+prometheus:
+  scrape: true
+  path: /metrics
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: url-shortener.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 60
