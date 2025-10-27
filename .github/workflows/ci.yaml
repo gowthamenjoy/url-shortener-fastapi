@@ -100,6 +100,18 @@ jobs:
           format: sarif
           output: trivy-image.sarif
 
+      # Install Trivy CLI so we can run "trivy ..." shell commands
+      - name: Setup Trivy CLI
+        uses: aquasecurity/setup-trivy@v0
+
+      # Human-readable table in job logs (filesystem scan)
+      - name: Trivy FS (table summary)
+        run: trivy fs --scanners vuln,secret,misconfig --severity LOW,MEDIUM,HIGH,CRITICAL --quiet --format table .
+
+      # Human-readable table in job logs (image scan)
+      - name: Trivy Image (table summary)
+        if: github.event_name != 'pull_request'
+        run: trivy image --scanners vuln,secret,misconfig --severity LOW,MEDIUM,HIGH,CRITICAL --quiet --format table ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_SHA }}
 
       - name: Upload Trivy FS results
         uses: github/codeql-action/upload-sarif@v3
