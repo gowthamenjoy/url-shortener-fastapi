@@ -1,4 +1,5 @@
 # URL Shortener (FastAPI) — Prod-Style DevOps Demo
+![CI](https://github.com/gowthamenjoy/url-shortener-fastapi/actions/workflows/ci.yaml/badge.svg)
 
 A production-style microservice showcasing **modern DevOps practices** end-to-end:
 
