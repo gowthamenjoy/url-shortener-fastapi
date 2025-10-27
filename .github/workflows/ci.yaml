@@ -43,10 +43,10 @@ jobs:
             type=ref,event=branch
             type=raw,value=dev
 
-      # ---------- INSERT: build cache + "no push on PRs" ----------
+      # Build & push for non-PR events (avoid pushing on forks/PRs)
       - name: Build and push
         id: build
-        if: github.event_name != 'pull_request' # do not push images for PRs from forks
+        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -56,9 +56,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      # ---------- END INSERT ----------
 
-      # When event is a PR, still build (no push) to validate Dockerfile works
+      # PR validation build (no push) so Dockerfile is still tested
       - name: Build (PR validation, no push)
         if: github.event_name == 'pull_request'
         uses: docker/build-push-action@v6
@@ -80,7 +79,6 @@ jobs:
           output: trivy-fs.sarif
 
       - name: Trivy image scan
-        # Only scan the pushed image when we actually pushed it (non-PR)
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@0.24.0
         with:
@@ -89,18 +87,18 @@ jobs:
           format: sarif
           output: trivy-image.sarif
 
-      # ---------- INSERT: upload BOTH SARIFs ----------
       - name: Upload Trivy FS results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-fs.sarif
+          category: trivy-fs   # <-- unique category to avoid the "one upload per job per tool/category" error
 
       - name: Upload Trivy image results
         if: github.event_name != 'pull_request'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-image.sarif
-      # ---------- END INSERT ----------
+          category: trivy-image  # <-- unique category
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -110,13 +108,11 @@ jobs:
       - name: Helm lint
         run: helm lint ./helm/url-shortener
 
-      # ---------- INSERT: render manifests with the CI image/tag ----------
       - name: Helm template (render check with CI tag)
         run: |
           helm template ci ./helm/url-shortener \
             --set image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} \
             --set image.tag=${{ env.TAG_SHA }}
-      # ---------- END INSERT ----------
 
       - name: Summary
         run: |
