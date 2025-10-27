@@ -5,8 +5,8 @@ metadata:
   name: {{ include "url-shortener.fullname" . }}
 spec:
   scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
+    apiVersion: {{ if .Values.canary.enabled }}argoproj.io/v1alpha1{{ else }}apps/v1{{ end }}
+    kind: {{ if .Values.canary.enabled }}Rollout{{ else }}Deployment{{ end }}
     name: {{ include "url-shortener.fullname" . }}
   minReplicas: {{ .Values.hpa.minReplicas }}
   maxReplicas: {{ .Values.hpa.maxReplicas }}

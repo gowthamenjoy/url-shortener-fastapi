@@ -1,6 +1,6 @@
-{{- if not .Values.canary.enabled }}
-apiVersion: apps/v1
-kind: Deployment
+{{- if .Values.canary.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: {{ include "url-shortener.fullname" . }}
   labels:
@@ -8,6 +8,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 5
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "url-shortener.name" . }}
@@ -55,4 +56,11 @@ spec:
           env:
             - name: LOG_LEVEL
               value: "info"
+  strategy:
+    canary:
+      # replica-weighted canary (simple demo). For precise % traffic, we’d add stable/canary Services + ingress routing.
+      steps:
+{{- range .Values.canary.steps }}
+        - {{- toYaml . | nindent 10 }}
+{{- end }}
 {{- end }}
