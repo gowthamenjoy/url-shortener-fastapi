@@ -37,11 +37,12 @@ flowchart LR
 
 ## 📸 Production Observability Snapshots
 
-### Canary Rollout Progression (Argo Rollouts)
+### Canary Rollout (Argo Rollouts)
 <img src="docs/argo-canary.png" width="650"/>
 
 ### Autoscaling CPU Load Test (HPA)
 <img src="docs/hpa-scale.png" width="650"/>
 
-### Live Request Metrics (Grafana + Prometheus)
+### Live Request Metrics (Grafana)
 <img src="docs/grafana-requests.png" width="650"/>
+
