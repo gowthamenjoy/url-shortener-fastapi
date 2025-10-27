@@ -14,10 +14,6 @@ A production-style microservice showcasing **modern DevOps practices** end-to-en
 
 ## 🖼 Architecture
 
-![Architecture](./docs/architecture.png)
-
-Mermaid source (also in `docs/architecture.mmd`):
-
 ```mermaid
 flowchart LR
   Browser -->|HTTP| Ingress
@@ -31,9 +27,9 @@ flowchart LR
   Prometheus --> Grafana
   Rollout -->|autoscale| HPA
   HPA --> metrics-server
-
   CI[GitHub Actions] --> GHCR
   GHCR --> Rollout
+```
 
 ## 📸 Production Observability Snapshots
 
