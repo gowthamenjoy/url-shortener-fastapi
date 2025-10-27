@@ -40,5 +40,5 @@ flowchart LR
 <img src="docs/hpa-scale.png" width="650"/>
 
 ### Live Request Metrics (Grafana)
-<img src="docs/grafana-requests.png" width="650"/>
+<img src="docs/Grafana-requests.png" width="650"/>
 
