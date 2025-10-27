@@ -43,8 +43,10 @@ jobs:
             type=ref,event=branch
             type=raw,value=dev
 
+      # ---------- INSERT: build cache + "no push on PRs" ----------
       - name: Build and push
         id: build
+        if: github.event_name != 'pull_request' # do not push images for PRs from forks
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -52,6 +54,22 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      # ---------- END INSERT ----------
+
+      # When event is a PR, still build (no push) to validate Dockerfile works
+      - name: Build (PR validation, no push)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Trivy FS scan (repo)
         uses: aquasecurity/trivy-action@0.24.0
@@ -62,6 +80,8 @@ jobs:
           output: trivy-fs.sarif
 
       - name: Trivy image scan
+        # Only scan the pushed image when we actually pushed it (non-PR)
+        if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@0.24.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_SHA }}
@@ -69,10 +89,18 @@ jobs:
           format: sarif
           output: trivy-image.sarif
 
-      - name: Upload Trivy results
+      # ---------- INSERT: upload BOTH SARIFs ----------
+      - name: Upload Trivy FS results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+
+      - name: Upload Trivy image results
+        if: github.event_name != 'pull_request'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-image.sarif
+      # ---------- END INSERT ----------
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -82,9 +110,16 @@ jobs:
       - name: Helm lint
         run: helm lint ./helm/url-shortener
 
+      # ---------- INSERT: render manifests with the CI image/tag ----------
+      - name: Helm template (render check with CI tag)
+        run: |
+          helm template ci ./helm/url-shortener \
+            --set image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} \
+            --set image.tag=${{ env.TAG_SHA }}
+      # ---------- END INSERT ----------
+
       - name: Summary
         run: |
-          echo "Pushed image:"
-          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_SHA }}" >> $GITHUB_STEP_SUMMARY
-          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_REF }}" >> $GITHUB_STEP_SUMMARY
-          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev" >> $GITHUB_STEP_SUMMARY
+          echo "Pushed image (SHA): ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_SHA }}" >> $GITHUB_STEP_SUMMARY
+          echo "Pushed image (branch): ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_REF }}" >> $GITHUB_STEP_SUMMARY
+          echo "Pushed image (dev): ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev" >> $GITHUB_STEP_SUMMARY
